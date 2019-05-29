@@ -4,7 +4,7 @@ This program was meant a) To help me run my Dungeons and Dragons sessions
 better, and b) as a exercise for me to learn a bit of lisp.
 
 
-** HOW TO USE IT
+## HOW TO USE IT
 1. Load the program somehow, I have this in my ~/.emacs
 (use-package org-lookup-dnd
     :bind ("C-c d" . org-lookup-dnd-at-point))
@@ -15,10 +15,10 @@ and subtract 6 from all the page numbers in that index:
 '(("~/Documents/DnD5ePlayersHandbook.pdf" -6 4 4))
 
 
-** DEPENDENCIES
+## DEPENDENCIES
 - emacs (obviously)
 - pdftotext (from poppler-utils on ubuntu)
 
 
-** LICENCE
+## LICENCE
 - GPL
