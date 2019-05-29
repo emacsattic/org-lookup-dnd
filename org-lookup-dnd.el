@@ -1,9 +1,11 @@
-;; org-lookup-dnd.el --- Reference the index of a D&D handbook pdf
+;;; org-lookup-dnd.el --- Reference the index of a D&D handbook pdf
 
 ;; This program was meant a) To help me run my Dungeons and Dragons sessions
 ;; better, and b) as a exercise for me to learn a bit of lisp.
 
 ;; Copyright (C) 2019 Malte Lau Petersen
+
+;; Author: Malte Lau Petersen <maltelau@protonmail.com>
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -18,6 +20,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+;;; Commentary:
+
 ;; HOW TO USE IT
 ;; 1. Load the program somehow, I have this in my ~/.emacs
 ;; (use-package org-lookup-dnd
@@ -27,12 +31,15 @@
 ;; to index the table of contents on page 4 of your players handbook,
 ;; and subtract 6 from all the page numbers in that index:
 ;; '(("~/Documents/DnD5ePlayersHandbook.pdf" -6 4 4))
+;; 3. Call org-lookup-dnd-at-point with the point where you want
+;; your link
 
 ;; DEPENDENCIES
-;; - emacs (obviously)
 ;; - pdftotext (from poppler-utils on ubuntu)
+;; - org, pdfview, and org-pdfview. This program will run, but not be very
+;;   helpful without them
 
-(require 'org)
+;;; Code: 
 
 ;; Utility functions
 
@@ -122,6 +129,7 @@ Stores what it finds in org-lookup-dnd-db saves that to disk as well."
 	   org-lookup-dnd-db)))
 
 
+;;;###autoload
 (defun org-lookup-dnd-at-point ()
   "Search for a (dnd) term from the index, clarify which one is meant, and then
 outputs an org-mode link to the pdf at the right page."
@@ -137,9 +145,7 @@ outputs an org-mode link to the pdf at the right page."
     (setq org-lookup-dnd-choice
 	  (if (= (length entries) 1)
 	      (car (car entries))
-	      (ido-completing-read "Which one? "
-				   (mapcar (lambda (entry) (car entry))
-					   entries))))
+	      (ido-completing-read "Which one? "  (mapcar car entries))))
     (loop for entry in entries
 	  do (when (string= org-lookup-dnd-choice (car entry))
 	       (delete-region-curried (bounds-of-thing-at-point 'word))
@@ -148,7 +154,7 @@ outputs an org-mode link to the pdf at the right page."
 			       (nth 2 entry)
 			       orig-word))))))
 
-;; CUSTOMIZATION
+;; Customization
 
 (defgroup org-lookup-dnd nil
   "This package indexes some pdfs and lets you insert links
@@ -177,3 +183,5 @@ Needs to be customized before org-lookup-dnd will work at all."
 
 
 (provide 'org-lookup-dnd)
+
+;;; org-lookup-dnd.el ends here
