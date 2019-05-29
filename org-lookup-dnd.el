@@ -32,7 +32,7 @@
 ;; - emacs (obviously)
 ;; - pdftotext (from poppler-utils on ubuntu)
 
-
+(require 'org)
 
 ;; Utility functions
 
@@ -60,10 +60,10 @@
 					fixedcase literal subexp start)
   "Match a regex with exactly 2 capture groups and return a list
 of the matches (group1 group2). Adapted from replace-regexp-in-string."
-  (setq matches nil)
+  ;; (setq matches nil)
   (let ((l (length string))
 	(start (or start 0))
-	str mb me)
+	matches str mb me)
     (save-match-data
       (while (and (< start l) (string-match regexp string start))
 	(setq mb (match-beginning 0)
@@ -89,14 +89,13 @@ of the matches (group1 group2). Adapted from replace-regexp-in-string."
     (error "Please ensure you've customized org-lookup-dnd to point to your pdf"))
   (unless (boundp 'org-lookup-dnd-db) (load-file org-lookup-dnd-db-file)))
   
-
 ;; Here comes the meat of this little library
 
 (defun org-lookup-dnd-parse-pdfs ()
 "Read in all the pdfs, and extract and index the table of contents.
 Stores what it finds in org-lookup-dnd-db saves that to disk as well."
   (setq org-lookup-dnd-db (apply #'append (mapcar (lambda (source)
-	    (let ((txt) (lst))
+	    (let (txt lst)
 	      (setq txt (shell-command-to-string (format "pdftotext -layout -f %d -l %d %s -"
 							 (nth 2 source)
 							 (nth 3 source)
@@ -123,31 +122,31 @@ Stores what it finds in org-lookup-dnd-db saves that to disk as well."
 	   org-lookup-dnd-db)))
 
 
-
 (defun org-lookup-dnd-at-point ()
   "Search for a (dnd) term from the index, clarify which one is meant, and then
 outputs an org-mode link to the pdf at the right page."
   (interactive)
   (org-lookup-dnd-check-if-setup)
-  (setq orig-word (thing-at-point 'word))
-  (when (not orig-word)
-    (setq orig-word (read-regexp "Search dnd reference: " nil 'org-lookup-dnd-history)))
-  (setq entries (org-lookup-dnd-search orig-word))
-  (setq org-lookup-dnd-choice
-	(if (= (length entries) 1)
-	    (car (car entries))
-	    (ido-completing-read "Which one? "
-				 (mapcar (lambda (entry) (car entry))
-					 entries))))
-  (message org-lookup-dnd-choice)
-  (loop for entry in entries
-	do (when (string= org-lookup-dnd-choice (car entry))
-	     (delete-region-curried (bounds-of-thing-at-point 'word))
-	     (setq org-lookup-dnd-pdf (nth 1 entry))
-	     (insert (format "[[pdfview:%s::%d][%s]]"
-			     org-lookup-dnd-pdf
-			     (nth 2 entry)
-			     orig-word)))))
+  (let ((orig-word (thing-at-point 'word))
+	entries)
+    (if (not orig-word)
+	(setq orig-word (read-regexp "Search dnd reference: "
+				     nil 'org-lookup-dnd-history))
+        (setq org-lookup-dnd-history (cons orig-word org-lookup-dnd-history)))
+    (setq entries (org-lookup-dnd-search orig-word))
+    (setq org-lookup-dnd-choice
+	  (if (= (length entries) 1)
+	      (car (car entries))
+	      (ido-completing-read "Which one? "
+				   (mapcar (lambda (entry) (car entry))
+					   entries))))
+    (loop for entry in entries
+	  do (when (string= org-lookup-dnd-choice (car entry))
+	       (delete-region-curried (bounds-of-thing-at-point 'word))
+	       (insert (format "[[pdfview:%s::%d][%s]]"
+			       (nth 1 entry)
+			       (nth 2 entry)
+			       orig-word))))))
 
 ;; CUSTOMIZATION
 
@@ -172,7 +171,7 @@ You need to tell it which pdfs to index, and which pages to look at."
 3. The first page of the index in the pdf, 4. the last page of the index.
 
 Needs to be customized before org-lookup-dnd will work at all."
-  :type '(list string integer integer integer)
+  :type '(list (list string integer integer integer))
   :set 'org-lookup-dnd-new-config
   :group 'org-lookup-dnd)
 
