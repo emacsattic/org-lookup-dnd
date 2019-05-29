@@ -25,6 +25,7 @@ and subtract 6 from all the page numbers in that index:
 ## DEPENDENCIES
 - emacs (obviously)
 - pdftotext (from poppler-utils on ubuntu)
+- org-pdfview (from melpa)
 
 ## HOW IT WORKS
 This program extracts the text from the index of the pdf. You can then
