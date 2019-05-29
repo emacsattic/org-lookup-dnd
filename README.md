@@ -31,6 +31,8 @@ and subtract 6 from all the page numbers in that index:
 This program extracts the text from the index of the pdf. You can then
 search trough the terms and get an org-mode link to the appropriate page.
 
+## WHAT'S NEXT
+It currently only works to pdfs that are nice enough to have everything interesting in the index. I'd like to find an elegang way to index things semiautomatically. For example, the players handbook has "Feats" as an element, but not the individual feat names.
 
 ## LICENCE
 Copyright (C) 2019 Malte Lau Petersen
