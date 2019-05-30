@@ -101,6 +101,7 @@
 ;; Here comes the meat of this little library
 
 (defun org-lookup-dnd-parse ()
+  "Parse pdfs, the extra org table, and store the db on disk."
   (org-lookup-dnd-parse-pdfs)
   (setq org-lookup-dnd-db (append
 			   org-lookup-dnd-db
@@ -111,7 +112,7 @@
 
 (defun org-lookup-dnd-parse-pdfs ()
 "Read in all the pdfs, and extract and index the table of contents.
-Stores what it finds in ‘org-lookup-dnd-db’ saves that to disk as well."
+Stores what it finds in ‘org-lookup-dnd-db’l."
   (setq org-lookup-dnd-db (apply #'append (mapcar (lambda (source)
 	    (let (txt lst)
 	      (setq txt (shell-command-to-string (format "pdftotext -layout -f %d -l %d %s -"
@@ -130,7 +131,7 @@ Stores what it finds in ‘org-lookup-dnd-db’ saves that to disk as well."
 
 
 (defun org-lookup-dnd-parse-extras ()
-  "Read in the extra index from ’org-lookup-dnd-extra-index’ and store it in ’org-lookup-dnd-db’."
+  "Read in the extra index from ’org-lookup-dnd-extra-index’."
   (when (file-exists-p org-lookup-dnd-extra-index)
 	(save-excursion
 	  (let (extras
