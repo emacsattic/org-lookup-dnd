@@ -1,4 +1,5 @@
-;;; org-lookup-dnd.el --- Reference the index of a D&D handbook pdf -*- lexical-binding: t; -*-
+;;; org-lookup-dnd.el --- Reference the index of a D&D handbook pdf
+;; -*- lexical-binding: t; -*-
 
 ;; This program was meant a) To help me run my Dungeons and Dragons sessions
 ;; better, and b) as a exercise for me to learn a bit of lisp.
@@ -22,22 +23,31 @@
 
 ;;; Commentary:
 
-;; HOW TO USE IT
-;; 1. Load the program somehow, I have this in my ~/.emacs
+;; ## INSTALLATION
+;; 1. Clone this repository into somewhere in your load-path
+;; 2. Load the program somehow, I have this in my ~/.emacs
+
+;; ```emacs-lisp
 ;; (use-package org-lookup-dnd
 ;;     :bind ("C-c d" . org-lookup-dnd-at-point))
-;; 2. Customize the variable org-lookup-dnd-sources to point to
-;; one or more pdf files you'd like to run this on.  For example
+;; ```
+
+;; 3. Customize the variable org-lookup-dnd-sources to point to
+;; one or more pdf files you'd like to run this on. For example
 ;; to index the table of contents on page 4 of your players handbook,
 ;; and subtract 6 from all the page numbers in that index:
-;; '(("~/Documents/DnD5ePlayersHandbook.pdf" -6 4 4))
-;; 3. Call org-lookup-dnd-at-point with the point where you want
-;; your link
 
-;; DEPENDENCIES
+;; ```emacs-lisp
+;; '(("~/Documents/DnD5ePlayersHandbook.pdf" -6 4 4)
+;;   (...))
+;; ```
+
+;; ## HOW TO USE IT
+;; Run `org-lookup-dnd-at-point`. If there is a word under the pointer, it will search for that term. Otherwise, write a search term in the minibuffer. If there are more than one matches, you get to pick which one to link to.
+
+;; ## DEPENDENCIES
 ;; - pdftotext (from poppler-utils on ubuntu)
-;; - org, pdfview, and org-pdfview.  This program will run, but not be very
-;;   helpful without them
+;; - org-pdfview (from melpa)
 
 ;;; Code:
 
@@ -60,13 +70,14 @@
         (print (list 'setq var (list 'quote (symbol-value var)))
                buffer)))
 
+
 (defun delete-region-curried (pos)
   "Delete a region, acception POS as a (START . END) list."
   (when pos (delete-region (car pos) (cdr pos))))
 
-(defun extract-regexp-in-string (regexp string &optional
-					fixedcase literal subexp start)
-  "Match a REGEX with exactly 2 capture groups and return a list of the matches (group1 group2). Adapted from ‘replace-regexp-in-string‘."
+(defun org-lookup-dnd-extract-from-index (regexp string &optional start)
+  "Match a REGEXP with exactly 2 capture groups and return a list of the matches (group1 group2). 
+Adapted from ‘replace-regexp-in-string’."
   ;; (setq matches nil)
   (let ((l (length string))
 	(start (or start 0))
@@ -112,7 +123,7 @@
 
 (defun org-lookup-dnd-parse-pdfs ()
 "Read in all the pdfs, and extract and index the table of contents.
-Stores what it finds in ‘org-lookup-dnd-db’l."
+Stores what it finds in ‘org-lookup-dnd-db’."
   (setq org-lookup-dnd-db (apply #'append (mapcar (lambda (source)
 	    (let (txt lst)
 	      (setq txt (shell-command-to-string (format "pdftotext -layout -f %d -l %d %s -"
@@ -120,7 +131,7 @@ Stores what it finds in ‘org-lookup-dnd-db’l."
 							 (nth 3 source)
 							 (shell-quote-argument (expand-file-name (car source))))))
 	      (setq txt (replace-regexp-in-string "[-':�;~^\"\`\'•|,·./() ]" "" txt))
-	      (setq lst (extract-regexp-in-string
+	      (setq lst (org-lookup-dnd-extract-from-index
 			 "\\([^\n[:digit:]]+\\)\n*\\([[:digit:]]+\\)" txt))
 	      (mapcar (lambda (entry)
 			(list (car entry)
@@ -131,7 +142,7 @@ Stores what it finds in ‘org-lookup-dnd-db’l."
 
 
 (defun org-lookup-dnd-parse-extras ()
-  "Read in the extra index from ’org-lookup-dnd-extra-index’."
+  "Read in the extra index from ‘org-lookup-dnd-extra-index’."
   (when (file-exists-p org-lookup-dnd-extra-index)
 	(save-excursion
 	  (let (extras
@@ -178,7 +189,7 @@ Stores what it finds in ‘org-lookup-dnd-db’l."
     (loop for entry in entries
 	  do (when (string= org-lookup-dnd-choice (car entry))
 	       (delete-region-curried (bounds-of-thing-at-point 'word))
-	       (insert (format "[[pdfview:%s::%d][%s]]"
+	       (insert (format org-lookup-dnd-link-format
 			       (nth 1 entry)
 			       (nth 2 entry)
 			       orig-word))))))
@@ -202,9 +213,8 @@ You need to tell it which pdfs to index, and which pages to look at."
 
 
 (defcustom org-lookup-dnd-extra-index "~/.local/share/org-lookup-dnd-extra.org"
-  "Location of (org)file with extra search references.
-Format: | searchterm|path/to/pdffile|page |
-Optional."
+  "Location of (org)file with extra search references. Optional.
+The format is an org table with the columns: | searchterm | path/to/pdffile | page |"
   :type '(string)
   :set #'org-lookup-dnd-new-config
   :group 'org-lookup-dnd)
@@ -218,6 +228,14 @@ Optional."
 Needs to be customized before org-lookup-dnd will work at all."
   :type '(list (list string integer integer integer))
   :set #'org-lookup-dnd-new-config
+  :group 'org-lookup-dnd)
+
+
+(defcustom org-lookup-dnd-link-format "[[pdfview:%s::%d][%s]]"
+  "Format string to be inserted at point with ‘org-lookup-dnd-at-point’.
+The first replacement is the path to the pdf. The second is the page number in the pdf, 
+and the third is the link title."
+  :type '(string)
   :group 'org-lookup-dnd)
 
 
