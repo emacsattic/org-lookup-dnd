@@ -46,6 +46,7 @@ Run `org-lookup-dnd-at-point`. If there is a word under the pointer, it will sea
 ## DEPENDENCIES
 - pdftotext (from poppler-utils on ubuntu)
 - org-pdfview (from melpa)
+- ivy (from melpa)
 
 ## HOW IT WORKS
 This program extracts the text from the index of the pdf with pdftotext. 
@@ -53,12 +54,13 @@ Then, when you want to find a link, it searches (inefficiently) through
 the entries it indexed.
 
 ## WHAT'S NEXT
-- It currently only works to pdfs that are nice enough to have everything 
+- [ ] It currently only works to pdfs that are nice enough to have everything 
 interesting in the index. I'd like to find an elegant way to index things 
 semiautomatically. For example, the players handbook has "Feats" as an 
 entry in the table of contents, but not the individual feat names. For now, 
 you'd have to put that in the org-lookup-dnd-extra-index table.
-- If you have multiple entries with the same name, you can't currently tell 
+- [x] A hash table would have faster lookup than a list
+- [x] If you have multiple entries with the same name, you can't currently tell 
 which comes from which source. Currently it inserts all of them after another.
 
 ## LICENCE

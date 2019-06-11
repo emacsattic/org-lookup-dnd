@@ -9,7 +9,7 @@
 ;; Created: May 2019
 ;; Version: 0.1
 ;; URL: https://gitlab.com/maltelau/org-lookup-dnd
-;; Package-Requires: ((emacs "24"))
+;; Package-Requires: ((emacs "24") ivy org-pdfview)
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -55,22 +55,19 @@
 ;;; Code:
 
 (require 'org-table)
+(require 'ivy)
 
 
 ;; Variables
 
 (defvar org-lookup-dnd-db nil
   "The db, loaded into memory.
-A list of entries, where each entry is a list:
-\('searchterm' '/path/to/pdf' 'pagenr')")
+A hash table, where each hash is 'file: searchterm' and each value is 
+a list: ('searchterm' '/path/to/file.pdf' 'pagenr')")
 
 
 (defvar org-lookup-dnd-choice nil
   "Last dnd entry inserted.")
-
-
-(defvar org-lookup-dnd-history nil
-  "History for searches in 'org-lookup-dnd-db'.")
 
 
 ;; Utility functions
@@ -131,7 +128,7 @@ Adapted from ‘replace-regexp-in-string’."
     (org-lookup-dnd-parse)))
 
 
-(defun org-lookup-dnd-check-if-setup ()
+(defun org-lookup-dnd-setup ()
   "Check if the custom variables are setup, and the db index loaded from file."
   (unless (and (bound-and-true-p org-lookup-dnd-sources)
 	       (bound-and-true-p org-lookup-dnd-db-file))
@@ -141,36 +138,34 @@ Adapted from ‘replace-regexp-in-string’."
 
 (defun org-lookup-dnd-parse ()
   "Parse pdfs, (opt) the extra org table, and store the db on disk."
+  (setq org-lookup-dnd-db
+	(make-hash-table :test #'equal :size 256 :rehash-size 2.0 :rehash-threshold .97))
   (org-lookup-dnd-parse-pdfs)
-  (setq org-lookup-dnd-db (append
-			   org-lookup-dnd-db
-			   (org-lookup-dnd-parse-extras)))
+  (org-lookup-dnd-parse-extras)
   (org-lookup-dnd-dump-vars-to-file '(org-lookup-dnd-db) org-lookup-dnd-db-file))
 
 
 (defun org-lookup-dnd-parse-pdfs ()
   "Read in all the pdfs, and extract and index the table of contents.
 Stores what it finds in ‘org-lookup-dnd-db’."
-  (setq org-lookup-dnd-db
-	(apply #'append (mapcar (lambda (source)
-				  (let (txt lst)
-				    ;; For each pdf source, run pdftottext on the index,
-				    (setq txt (shell-command-to-string (format "pdftotext -layout -f %d -l %d %s -"
-									       (nth 2 source)
-									       (nth 3 source)
-									       (shell-quote-argument (expand-file-name (car source))))))
-				    ;; remove most punctuation,
-				    (setq txt (replace-regexp-in-string "[-':�;~^\"\`\'•|,·./() ]" "" txt))
-				    ;; And extract the (term)......(page).
-				    (setq lst (org-lookup-dnd-extract-from-index
-					       "\\([^\n[:digit:]]+\\)\n*\\([[:digit:]]+\\)" txt))
-				    ;; Then add the page offset for this source.
-				    (mapcar (lambda (entry)
-					      (list (car entry)
-						    (car source)
-						    (+ (string-to-number (nth 1 entry)) (nth 1 source))))
-					    lst)))
-				org-lookup-dnd-sources))))
+  (dolist (source org-lookup-dnd-sources)
+    (let (txt lst)
+      ;; For each pdf source, run pdftottext on the index,
+      (setq txt (shell-command-to-string (format "pdftotext -layout -f %d -l %d %s -"
+						 (nth 2 source)
+						 (nth 3 source)
+						 (shell-quote-argument (expand-file-name (car source))))))
+      ;; remove most punctuation,
+      (setq txt (replace-regexp-in-string "[-':�;~^\"\`\'•|,·./() ]" "" txt))
+      ;; And extract the (term)......(page).
+      (setq lst (org-lookup-dnd-extract-from-index
+		 "\\([^\n[:digit:]]+\\)\n*\\([[:digit:]]+\\)" txt))
+      (dolist (entry lst)
+	(puthash (format "%s: %s" (file-name-base (car source)) (car entry))
+		 (list (car entry)
+		       (car source)
+		       (+ (string-to-number (nth 1 entry)) (nth 1 source)))
+		 org-lookup-dnd-db)))))
 
 
 (defun org-lookup-dnd-parse-extras ()
@@ -182,53 +177,34 @@ Stores what it finds in ‘org-lookup-dnd-db’."
 	(set-buffer buf)
 	(goto-char (point-min))
 	;; Read in the table, interpreting the page nr (3rd col) as numeric
-	(setq extras (mapcar (lambda (entry)
-			       (list (car entry)
-				     (nth 1 entry)
-				     (string-to-number (nth 2 entry))))
-			     (cdr (cdr (org-table-to-lisp))))) ;; skip header
-	(kill-buffer buf)
-	extras)))) ;; return
-
-
-(defun org-lookup-dnd-search (regexp)
-  "Filter the db down according to the search REGEXP."
-  (interactive (list (read-regexp "Search dnd reference: " nil 'org-lookup-dnd-history)))
-  (delete nil
-	  (mapcar
-	   (lambda (entry)
-	     (when (string-match regexp (car entry)) entry))
-	   org-lookup-dnd-db)))
+	(dolist (entry (cdr (cdr (org-table-to-lisp))))
+	  (puthash (format "%s: %s" (file-name-base (nth 1 entry)) (car entry))
+		   (list (car entry)
+			 (nth 1 entry)
+			 (string-to-number (nth 2 entry)))
+		   org-lookup-dnd-db))
+	(kill-buffer buf)))))
 
 
 ;;;###autoload
 (defun org-lookup-dnd-at-point ()
   "Search for a (dnd) term from the index, clarify which one is meant, and then output an ‘org-mode’ link to the pdf at the right page."
   (interactive)
-  (org-lookup-dnd-check-if-setup)
-  (let ((orig-word (thing-at-point 'word))
-	entries)
-    (if (not orig-word)
-	;; ask for a search term
-	(setq orig-word (read-regexp "Search dnd reference: "
-				     nil 'org-lookup-dnd-history))
-      ;; add the word under point to history
-      (setq org-lookup-dnd-history (cons orig-word
-					 (when (boundp 'org-lookup-dnd-history)
-					   org-lookup-dnd-history))))
-    (setq entries (org-lookup-dnd-search orig-word))
-    (setq org-lookup-dnd-choice
-	  ;; select between multiple matches
-	  (if (= (length entries) 1)
-	      (car (car entries))
-	    (ido-completing-read "Which one? "  (mapcar #'car entries))))
-    ;; TODO: better way of indexing the db than by term.
-    (dolist (entry entries)
-      (when (string= org-lookup-dnd-choice (car entry))
-	(org-lookup-dnd-delete-region-curried (bounds-of-thing-at-point 'word))
-	(insert (format org-lookup-dnd-link-format
-			(nth 1 entry)
-			(nth 2 entry)
+  (org-lookup-dnd-setup)
+  (let ((orig-word (thing-at-point 'word)))
+    (when (not orig-word) (setq orig-word ""))
+    (ivy-read "Link to which entry: "
+	      org-lookup-dnd-db
+	      :require-match t
+	      :predicate (lambda (hash entry) (string-match orig-word (car entry)))
+	      :action (lambda (x) (setq org-lookup-dnd-choice x)))
+    (let ((entry (gethash org-lookup-dnd-choice org-lookup-dnd-db)))
+      (org-lookup-dnd-delete-region-curried (bounds-of-thing-at-point 'word))
+      (insert (format org-lookup-dnd-link-format
+		      (nth 1 entry)
+		      (nth 2 entry)
+		      (if (string-empty-p orig-word)
+			  (car entry)
 			orig-word))))))
 
 
@@ -264,7 +240,7 @@ The format is an org table with the columns: | searchterm | path/to/pdffile | pa
 
 Needs to be customized before org-lookup-dnd will work at all."
   :type '(repeat (list :tag ""
-		       (string :tag  "Path to pdf        ")
+		       (string  :tag "Path to pdf        ")
 		       (integer :tag "Page offset        ")
 		       (integer :tag "First page of index")
 		       (integer :tag "Last page of index ")))
