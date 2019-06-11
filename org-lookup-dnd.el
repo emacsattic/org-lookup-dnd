@@ -58,6 +58,23 @@
 
 (require 'org-table)
 
+
+;; Variables
+
+(defvar org-lookup-dnd-db nil
+  "The db, loaded into memory.
+A list of entries, where each entry is a list:
+\('searchterm' '/path/to/pdf' 'pagenr')")
+
+
+(defvar org-lookup-dnd-choice nil
+  "Last dnd entry inserted.")
+
+
+(defvar org-lookup-dnd-history nil
+  "History for searches in 'org-lookup-dnd-db'.")
+
+
 ;; Utility functions
 
 (defun org-lookup-dnd-dump-vars-to-file (varlist filename)
@@ -248,7 +265,11 @@ The format is an org table with the columns: | searchterm | path/to/pdffile | pa
 3. The first page of the index in the pdf, 4. the last page of the index.
 
 Needs to be customized before org-lookup-dnd will work at all."
-  :type '(list (list string integer integer integer))
+  :type '(repeat (list :tag ""
+		       (string :tag  "Path to pdf        ")
+		       (integer :tag "Page offset        ")
+		       (integer :tag "First page of index")
+		       (integer :tag "Last page of index ")))
   :set #'org-lookup-dnd-new-config
   :group 'org-lookup-dnd)
 
@@ -260,22 +281,6 @@ The second is the page number in the pdf,
 and the third is the link title."
   :type '(string)
   :group 'org-lookup-dnd)
-
-
-;; Variables
-
-(defvar org-lookup-dnd-db nil
-  "The db, loaded into memory.
-A list of entries, where each entry is a list:
-\('searchterm' '/path/to/pdf' 'pagenr')")
-
-
-(defvar org-lookup-dnd-choice nil
-  "Last dnd entry inserted.")
-
-
-(defvar org-lookup-dnd-history nil
-  "History for searches in 'org-lookup-dnd-db'.")
 
 
 (provide 'org-lookup-dnd)
