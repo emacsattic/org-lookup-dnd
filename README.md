@@ -29,15 +29,16 @@ the correct page in the sourcebooks into my planning document on the fly.
 ```
 
 3. Customize the variable org-lookup-dnd-sources to point to
-one or more pdf files you'd like to run this on. For example
-to index the table of contents on page 4 of your players handbook,
-and subtract 6 from all the page numbers in that index:
+one or more pdf files you'd like to run this on.  For example
+to index the table of contents on page 2 of the basic rules
+(https://media.wizards.com/2018/dnd/downloads/DnD_BasicRules_2018.pdf)
+and add 0 from all the page numbers in that index:
 
 ```
-Path to pdf        : ~/Documents/DnD5ePlayersHandbook.pdf
-Page offset        : -6
-First page of index: 4
-Last page of index : 4
+Path to pdf        : ~/Dowloads/DnD_BasicRules_2018.pdf
+Page offset        : 0
+First page of index: 2
+Last page of index : 2
 ```
 
 ## HOW TO USE IT
