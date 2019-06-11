@@ -54,9 +54,10 @@ the entries it indexed.
 - It currently only works to pdfs that are nice enough to have everything 
 interesting in the index. I'd like to find an elegant way to index things 
 semiautomatically. For example, the players handbook has "Feats" as an 
-element, but not the individual feat names. For now, you'd have to put 
-that in the org-lookup-dnd-extra-index table.
-- If you have multiple entries with the same name, you can't currently tell which comes from which source.
+entry in the table of contents, but not the individual feat names. For now, 
+you'd have to put that in the org-lookup-dnd-extra-index table.
+- If you have multiple entries with the same name, you can't currently tell 
+which comes from which source. Currently it inserts all of them after another.
 
 ## LICENCE
 Copyright (C) 2019 Malte Lau Petersen
