@@ -33,9 +33,11 @@ one or more pdf files you'd like to run this on. For example
 to index the table of contents on page 4 of your players handbook,
 and subtract 6 from all the page numbers in that index:
 
-```emacs-lisp
-'(("~/Documents/DnD5ePlayersHandbook.pdf" -6 4 4)
-  (...))
+```
+Path to pdf        : ~/Documents/DnD5ePlayersHandbook.pdf
+Page offset        : -6
+First page of index: 4
+Last page of index : 4
 ```
 
 ## HOW TO USE IT
