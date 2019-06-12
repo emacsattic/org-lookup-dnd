@@ -52,6 +52,7 @@
 ;; ## DEPENDENCIES
 ;; - pdftotext (from poppler-utils on ubuntu)
 ;; - org-pdfview (from melpa)
+;; - ivy (from melpa)
 
 ;;; Code:
 
@@ -59,12 +60,64 @@
 (require 'ivy)
 
 
+;; Customization
+
+(defgroup org-lookup-dnd nil
+  "This package indexes some pdfs and lets you insert links
+from the table of contents into your org-mode document.
+
+You need to tell it which pdfs to index, and which pages to look at."
+  :group 'org)
+
+
+(defcustom org-lookup-dnd-db-file "~/.local/share/org-lookup-dnd-db.el"
+  "Location to store the index on disk."
+  :type '(string)
+  :set #'org-lookup-dnd-new-config
+  :initialize #'custom-initialize-default
+  :group 'org-lookup-dnd)
+
+
+(defcustom org-lookup-dnd-extra-index "~/.local/share/org-lookup-dnd-extra.org"
+  "Location of (org)file with extra search references.  Optional.
+The format is an org table with the columns: | searchterm | path/to/pdffile | page |"
+  :type '(string)
+  :set #'org-lookup-dnd-new-config
+  :initialize #'custom-initialize-default
+  :group 'org-lookup-dnd)
+
+
+(defcustom org-lookup-dnd-sources nil
+  "A list of source(book)s. Each entry should be a list of four elements:
+1. The pdf's filename, 2. How many pages in the pdf to add to the page nr,
+3. The first page of the index in the pdf, 4. the last page of the index.
+
+Needs to be customized before org-lookup-dnd will work at all."
+  :type '(repeat (list :tag ""
+		       (string  :tag "Path to pdf        ")
+		       (integer :tag "Page offset        ")
+		       (integer :tag "First page of index")
+		       (integer :tag "Last page of index ")))
+  :set #'org-lookup-dnd-new-config
+  :initialize #'custom-initialize-default
+  :group 'org-lookup-dnd)
+
+
+(defcustom org-lookup-dnd-link-format "[[pdfview:%s::%d][%s]]"
+  "Format string to be inserted at point with ‘org-lookup-dnd-at-point’.
+The first replacement is the path to the pdf.
+The second is the page number in the pdf,
+and the third is the link title."
+  :type '(string)
+  :group 'org-lookup-dnd)
+
+
 ;; Variables
 
 (defvar org-lookup-dnd-db nil
   "The db, loaded into memory.
-A hash table, where each hash is 'file: searchterm' and each value is 
-a list: ('searchterm' '/path/to/file.pdf' 'pagenr')")
+A hash table, where each hash is 'file: searchterm' and each value is
+a list: ('searchterm' '/path/to/file.pdf' pagenr)")
 
 
 (defvar org-lookup-dnd-choice nil
@@ -130,11 +183,11 @@ Adapted from ‘replace-regexp-in-string’."
 
 
 (defun org-lookup-dnd-setup ()
-  "Check if the custom variables are setup, and the db index loaded from file."
+  "Check if the custom variables are setup, and load the db index from file."
   (unless (and (bound-and-true-p org-lookup-dnd-sources)
 	       (bound-and-true-p org-lookup-dnd-db-file))
     (error "Please ensure you've customized org-lookup-dnd to point to your pdf"))
-  (unless (boundp 'org-lookup-dnd-db) (load-file org-lookup-dnd-db-file)))
+  (unless (bound-and-true-p org-lookup-dnd-db) (load-file org-lookup-dnd-db-file)))
 
 
 (defun org-lookup-dnd-parse ()
@@ -172,20 +225,16 @@ Stores what it finds in ‘org-lookup-dnd-db’."
 (defun org-lookup-dnd-parse-extras ()
   "Read in the extra index from ‘org-lookup-dnd-extra-index’."
   (when (file-exists-p org-lookup-dnd-extra-index)
-    (save-excursion
-      (let (extras
-	    (buf (find-file-noselect org-lookup-dnd-extra-index)))
-	(set-buffer buf)
-	(goto-char (point-min))
-	;; Read in the table, interpreting the page nr (3rd col) as numeric
-	(dolist (entry (cdr (cdr (org-table-to-lisp))))
-	  (puthash (format "%s: %s" (file-name-base (nth 1 entry)) (car entry))
-		   (list (car entry)
-			 (nth 1 entry)
-			 (string-to-number (nth 2 entry)))
-		   org-lookup-dnd-db))
-	(kill-buffer buf)))))
-
+    (with-current-buffer (setq buf (find-file-noselect org-lookup-dnd-extra-index))
+      (goto-char (point-min))
+      ;; Read in the table, interpreting the page nr (3rd col) as numeric
+      (dolist (entry (cdr (cdr (org-table-to-lisp))))
+	(puthash (format "%s: %s" (file-name-base (nth 1 entry)) (car entry))
+		 (list (car entry)
+		       (nth 1 entry)
+		       (string-to-number (nth 2 entry)))
+		 org-lookup-dnd-db)))
+    (kill-buffer buf)))
 
 ;;;###autoload
 (defun org-lookup-dnd-at-point ()
@@ -197,7 +246,7 @@ Stores what it finds in ‘org-lookup-dnd-db’."
     (ivy-read "Link to which entry: "
 	      org-lookup-dnd-db
 	      :require-match t
-	      :predicate (lambda (hash entry) (string-match orig-word (car entry)))
+	      :predicate (lambda (_ entry) (string-match orig-word (car entry)))
 	      :action (lambda (x) (setq org-lookup-dnd-choice x)))
     (let ((entry (gethash org-lookup-dnd-choice org-lookup-dnd-db)))
       (org-lookup-dnd-delete-region-curried (bounds-of-thing-at-point 'word))
@@ -207,55 +256,6 @@ Stores what it finds in ‘org-lookup-dnd-db’."
 		      (if (string-empty-p orig-word)
 			  (car entry)
 			orig-word))))))
-
-
-;; Customization
-
-(defgroup org-lookup-dnd nil
-  "This package indexes some pdfs and lets you insert links
-from the table of contents into your org-mode document.
-
-You need to tell it which pdfs to index, and which pages to look at."
-  :group 'org)
-
-
-(defcustom org-lookup-dnd-db-file "~/.local/share/org-lookup-dnd-db.el"
-  "Location to store the index on disk."
-  :type '(string)
-  :set #'org-lookup-dnd-new-config
-  :group 'org-lookup-dnd)
-
-
-(defcustom org-lookup-dnd-extra-index "~/.local/share/org-lookup-dnd-extra.org"
-  "Location of (org)file with extra search references.  Optional.
-The format is an org table with the columns: | searchterm | path/to/pdffile | page |"
-  :type '(string)
-  :set #'org-lookup-dnd-new-config
-  :group 'org-lookup-dnd)
-
-
-(defcustom org-lookup-dnd-sources nil
-  "A list of source(book)s. Each entry should be a list of four elements:
-1. The pdf's filename, 2. How many pages in the pdf to add to the page nr,
-3. The first page of the index in the pdf, 4. the last page of the index.
-
-Needs to be customized before org-lookup-dnd will work at all."
-  :type '(repeat (list :tag ""
-		       (string  :tag "Path to pdf        ")
-		       (integer :tag "Page offset        ")
-		       (integer :tag "First page of index")
-		       (integer :tag "Last page of index ")))
-  :set #'org-lookup-dnd-new-config
-  :group 'org-lookup-dnd)
-
-
-(defcustom org-lookup-dnd-link-format "[[pdfview:%s::%d][%s]]"
-  "Format string to be inserted at point with ‘org-lookup-dnd-at-point’.
-The first replacement is the path to the pdf.
-The second is the page number in the pdf,
-and the third is the link title."
-  :type '(string)
-  :group 'org-lookup-dnd)
 
 
 (provide 'org-lookup-dnd)
