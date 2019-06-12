@@ -225,16 +225,18 @@ Stores what it finds in ‘org-lookup-dnd-db’."
 (defun org-lookup-dnd-parse-extras ()
   "Read in the extra index from ‘org-lookup-dnd-extra-index’."
   (when (file-exists-p org-lookup-dnd-extra-index)
-    (with-current-buffer (setq buf (find-file-noselect org-lookup-dnd-extra-index))
-      (goto-char (point-min))
-      ;; Read in the table, interpreting the page nr (3rd col) as numeric
-      (dolist (entry (cdr (cdr (org-table-to-lisp))))
-	(puthash (format "%s: %s" (file-name-base (nth 1 entry)) (car entry))
-		 (list (car entry)
-		       (nth 1 entry)
-		       (string-to-number (nth 2 entry)))
-		 org-lookup-dnd-db)))
-    (kill-buffer buf)))
+    (let ((buf (find-file-noselect org-lookup-dnd-extra-index)))
+      (with-current-buffer buf
+	(goto-char (point-min))
+	;; Read in the table, interpreting the page nr (3rd col) as numeric
+	(dolist (entry (cdr (cdr (org-table-to-lisp))))
+	  (puthash (format "%s: %s" (file-name-base (nth 1 entry)) (car entry))
+		   (list (car entry)
+			 (nth 1 entry)
+			 (string-to-number (nth 2 entry)))
+		   org-lookup-dnd-db)))
+      (kill-buffer buf))))
+
 
 ;;;###autoload
 (defun org-lookup-dnd-at-point ()
