@@ -9,7 +9,7 @@
 ;; Created: May 2019
 ;; Version: 0.1
 ;; URL: https://gitlab.com/maltelau/org-lookup-dnd
-;; Package-Requires: ((emacs "24") ivy org-pdfview)
+;; Package-Requires: ((emacs "24.4") (ivy "0.2") (org-pdfview "0.1"))
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
