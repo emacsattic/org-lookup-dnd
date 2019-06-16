@@ -9,7 +9,7 @@
 ;; Created: May 2019
 ;; Version: 0.1
 ;; URL: https://gitlab.com/maltelau/org-lookup-dnd
-;; Package-Requires: ((emacs "24.4") (ivy "0.2") (org-pdfview "0.1"))
+;; Package-Requires: ((emacs "24.4") (org-pdfview "0.1"))
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -52,12 +52,14 @@
 ;; ## DEPENDENCIES
 ;; - pdftotext (from poppler-utils on ubuntu)
 ;; - org-pdfview (from melpa)
-;; - ivy (from melpa)
+
+;; ## RECOMMENDED
+;; Your completion framework of choice.  See `M-x customize-variable RET org-lookup-dnd-chose RET`
 
 ;;; Code:
 
+(require 'seq)
 (require 'org-table)
-(require 'ivy)
 
 
 ;; Customization
@@ -110,6 +112,45 @@ The second is the page number in the pdf,
 and the third is the link title."
   :type '(string)
   :group 'org-lookup-dnd)
+
+
+(defcustom org-lookup-dnd-chose #'org-lookup-dnd-chose-vanilla
+  "Completion framework to use for searching the index.
+
+If you chose 'Custom', the value should be a function
+that takes two arguments: PROMPT and COLLECTION"
+  :type '(radio (const :tag "Completing-read" org-lookup-dnd-chose-vanilla)
+		(const :tag "Ivy" org-lookup-dnd-chose-ivy)
+		(const :tag "Ido" org-lookup-dnd-chose-ido)
+		(const :tag "Helm" org-lookup-dnd-chose-helm)
+		(sexp  :tag "Custom"))
+  :group 'org-lookup-dnd
+  :tag "Completion framework")
+
+
+(declare-function ivy-read "ext:ivy")
+(defun org-lookup-dnd-chose-ivy (prompt collection)
+  "Use ivy.  Given PROMPT, select from COLLECTION."
+  (require 'ivy)
+  (ivy-read prompt collection :require-match t))
+
+(defun org-lookup-dnd-chose-vanilla (prompt collection)
+  "Use ‘completing-read’.  Given PROMPT, select from COLLECTION."
+  ;; setting completion-styles to substring is needed
+  ;; to match an entry without typing the name of the source
+  (let ((completion-styles (list 'substring)))
+    (completing-read prompt collection nil t)))
+
+(defun org-lookup-dnd-chose-ido (prompt collection)
+  "Use ido.  Given PROMPT, select from COLLECTION."
+  (require 'ido)
+  (ido-completing-read prompt collection nil t))
+
+(declare-function helm-comp-read "ext:helm")
+(defun org-lookup-dnd-chose-helm (prompt collection)
+  "Use helm.  Given PROMPT, select from COLLECTION."
+  (require 'helm)
+  (helm-comp-read prompt collection :must-match t))
 
 
 ;; Variables
@@ -243,21 +284,17 @@ Stores what it finds in ‘org-lookup-dnd-db’."
   "Search for a (dnd) term from the index, clarify which one is meant, and then output an ‘org-mode’ link to the pdf at the right page."
   (interactive)
   (org-lookup-dnd-setup)
-  (let ((orig-word (thing-at-point 'word)))
-    (when (not orig-word) (setq orig-word ""))
-    (ivy-read "Link to which entry: "
-	      org-lookup-dnd-db
-	      :require-match t
-	      :predicate (lambda (_ entry) (string-match orig-word (car entry)))
-	      :action (lambda (x) (setq org-lookup-dnd-choice x)))
+  ;; pre-filter the completion list according to the word at point
+  (let ((collection (seq-filter (lambda (x) (string-match (or (thing-at-point 'word) "") x))
+				 (hash-table-keys org-lookup-dnd-db))))
+    (setq org-lookup-dnd-choice
+	  (funcall org-lookup-dnd-chose "Link to which entry: " collection))
     (let ((entry (gethash org-lookup-dnd-choice org-lookup-dnd-db)))
       (org-lookup-dnd-delete-region-curried (bounds-of-thing-at-point 'word))
       (insert (format org-lookup-dnd-link-format
 		      (nth 1 entry)
 		      (nth 2 entry)
-		      (if (string-empty-p orig-word)
-			  (car entry)
-			orig-word))))))
+		      (or (thing-at-point 'word) (car entry)))))))
 
 
 (provide 'org-lookup-dnd)

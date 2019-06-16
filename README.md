@@ -47,7 +47,9 @@ Run `org-lookup-dnd-at-point`. If there is a word under the pointer, it will sea
 ## DEPENDENCIES
 - pdftotext (from poppler-utils on ubuntu)
 - org-pdfview (from melpa)
-- ivy (from melpa)
+
+## RECOMMENDED
+Your completion framework of choice. See `M-x customize-variable RET org-lookup-dnd-chose RET`
 
 ## HOW IT WORKS
 This program extracts the text from the index of the pdf with pdftotext. 
