@@ -72,7 +72,7 @@ You need to tell it which pdfs to index, and which pages to look at."
 
 (defcustom org-lookup-dnd-db-file "~/.local/share/org-lookup-dnd-db.el"
   "Location to store the index on disk."
-  :type '(string)
+  :type '(file)
   :set #'org-lookup-dnd-new-config
   :initialize #'custom-initialize-default
   :group 'org-lookup-dnd)
@@ -81,7 +81,7 @@ You need to tell it which pdfs to index, and which pages to look at."
 (defcustom org-lookup-dnd-extra-index "~/.local/share/org-lookup-dnd-extra.org"
   "Location of (org)file with extra search references.  Optional.
 The format is an org table with the columns: | searchterm | path/to/pdffile | page |"
-  :type '(string)
+  :type '(file)
   :set #'org-lookup-dnd-new-config
   :initialize #'custom-initialize-default
   :group 'org-lookup-dnd)
@@ -94,7 +94,7 @@ The format is an org table with the columns: | searchterm | path/to/pdffile | pa
 
 Needs to be customized before org-lookup-dnd will work at all."
   :type '(repeat (list :tag ""
-		       (string  :tag "Path to pdf        ")
+		       (file    :tag "Path to pdf        ")
 		       (integer :tag "Page offset        ")
 		       (integer :tag "First page of index")
 		       (integer :tag "Last page of index ")))
