@@ -156,15 +156,15 @@ Returns a list of the matches (group1 group2).
 Optional: Specify the START position.
 Adapted from ‘replace-regexp-in-string’."
   ;; (setq matches nil)
-  (let ((l (length string))
+  (let ((len (length string))
 	(start (or start 0))
 	matches mb me)
     (save-match-data
-      (while (and (< start l) (string-match regexp string start))
+      (while (and (< start len) (string-match regexp string start))
 	(setq mb (match-beginning 0)
 	      me (match-end 0))
 	;; If we matched the empty string, make sure we advance by one char
-	(when (= me mb) (setq me (min l (1+ mb))))
+	(when (= me mb) (setq me (min len (1+ mb))))
 	(setq start me)
 	(setq matches
 	      (cons (list (match-string 1 string) (match-string 2 string))
