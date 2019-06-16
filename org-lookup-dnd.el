@@ -55,6 +55,7 @@
 
 ;; ## RECOMMENDED
 ;; Your completion framework of choice.  See `M-x customize-variable RET org-lookup-dnd-chose RET`
+;; Tested with ivy, ido, and helm.
 
 ;;; Code:
 
