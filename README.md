@@ -20,15 +20,16 @@ the correct page in the sourcebooks into my planning document on the fly.
 
 ## INSTALLATION
 0. Install the dependencies
-1. Clone this repository into somewhere in your load-path
-2. Load the program somehow, I have this in my ~/.emacs
+1. org-lookup-dnd is available on MELPA. You can install and load it
+   by putting this in your .emacs
 
 ```emacs-lisp
 (use-package org-lookup-dnd
+	:ensure t
     :bind ("C-c d" . org-lookup-dnd-at-point))
 ```
 
-3. Customize the variable org-lookup-dnd-sources to point to
+2. Customize the variable org-lookup-dnd-sources to point to
 one or more pdf files you'd like to run this on.  For example
 to index the table of contents on page 2 of the basic rules
 (https://media.wizards.com/2018/dnd/downloads/DnD_BasicRules_2018.pdf)
