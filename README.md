@@ -25,7 +25,7 @@ the correct page in the sourcebooks into my planning document on the fly.
 
 ```emacs-lisp
 (use-package org-lookup-dnd
-	:ensure t
+    :ensure t
     :bind ("C-c d" . org-lookup-dnd-at-point))
 ```
 
