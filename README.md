@@ -58,7 +58,7 @@ Tested with ivy, ido, and helm.
 
 ## HOW IT WORKS
 This program extracts the text from the index of the pdf with pdftotext. 
-Then, when you want to find a link, it searches (inefficiently) through 
+Then, when you want to find a link, it searches through 
 the entries it indexed.
 
 ## WHAT'S NEXT
