@@ -18,6 +18,8 @@ I've been in this situation, and I wish I could have just put some links to
 the correct page in the sourcebooks into my planning document on the fly. 
 *org-lookup-dnd* to the rescue.
 
+![Gif showing org-lookup-dnd in use](https://i.imgur.com/GsPSE7a.gif)
+
 ## INSTALLATION
 0. Install the dependencies
 1. org-lookup-dnd is available on MELPA. You can install and load it
