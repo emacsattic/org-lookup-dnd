@@ -63,6 +63,7 @@
 
 (require 'seq)
 (require 'org-table)
+(require 'org-pdfview)
 
 
 ;; Customization
